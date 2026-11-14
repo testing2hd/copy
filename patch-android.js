@@ -36,15 +36,15 @@ if (!g.includes('dev.rikka.shizuku')) {
       + '\n    implementation "io.github.junkfood02.youtubedl-android:library:0.18.1"'
       + '\n    implementation "io.github.junkfood02.youtubedl-android:ffmpeg:0.18.1"'
       + '\n    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.24"');
-  // yt-dlp's python/ffmpeg ship as native libs that must be extracted to disk; skip x86 to keep the APK smaller.
-  g = g.replace(/defaultConfig\s*\{/, (x) => x + "\n        ndk { abiFilters 'arm64-v8a', 'armeabi-v7a' }");
+  // yt-dlp's python/ffmpeg ship as native libs that must be extracted to disk; arm64 only (modern phones) keeps the APK smaller.
+  g = g.replace(/defaultConfig\s*\{/, (x) => x + "\n        ndk { abiFilters 'arm64-v8a' }");
   g = g.replace(/android\s*\{/, (x) => x + '\n    packaging { jniLibs { useLegacyPackaging = true } }');
   fs.writeFileSync(gPath, g);
 }
 const vPath = path.join(android, 'variables.gradle');
 if (fs.existsSync(vPath)) {
   let v = fs.readFileSync(vPath, 'utf8');
-  v = v.replace(/minSdkVersion\s*=\s*\d+/, 'minSdkVersion = 29');
+  v = v.replace(/minSdkVersion\s*=\s*\d+/, 'minSdkVersion = 30');
   fs.writeFileSync(vPath, v);
 }
 console.log('Android project patched for', appId);
