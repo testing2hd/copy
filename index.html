@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Link Router</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <h1>Link Router</h1>
+
+  <section class="main-card">
+    <div class="switch-row">
+      <div>
+        <h2>Detect copied links</h2>
+        <p id="msg" class="msg">Loading...</p>
+      </div>
+      <label class="toggle"><input type="checkbox" id="svc" aria-label="Detect copied links"><span></span></label>
+    </div>
+  </section>
+
+  <section>
+    <h2>Download a link</h2>
+    <input type="text" id="dlUrl" placeholder="Paste a video link" spellcheck="false" autocapitalize="off" aria-label="Video link">
+    <button class="wide" id="dlGo">Download</button>
+  </section>
+
+  <section id="setup" hidden>
+    <h2>Finish setup</h2>
+    <ul id="todo"></ul>
+  </section>
+
+  <section>
+    <h2>Download settings</h2>
+    <label class="fld">Quality
+      <select id="q"><option value="best">Best available</option><option value="1080">Up to 1080p</option><option value="720">Up to 720p</option><option value="480">Up to 480p</option><option value="audio">Audio only (m4a)</option></select>
+    </label>
+    <label class="fld">Video format
+      <select id="ct"><option value="mp4">MP4</option><option value="mkv">MKV</option><option value="webm">WebM</option></select>
+    </label>
+    <label class="fld">Engine update channel
+      <select id="ch"><option value="nightly">Nightly (fixes arrive first)</option><option value="stable">Stable</option></select>
+    </label>
+    <label class="fld">Cookies (optional, for private Instagram/Facebook; Netscape cookies.txt)
+      <textarea id="ck" rows="3" spellcheck="false" placeholder="# Netscape HTTP Cookie File"></textarea>
+    </label>
+    <p class="msg" id="eng">Engine: loading...</p>
+    <button class="ghost wide" id="upd">Update engine now</button>
+    <p class="msg">The engine also updates itself every 12 hours and after any failed download. Files are saved to Movies/LinkRouter.</p>
+  </section>
+
+  <section>
+    <h2>Apps</h2>
+    <div id="apps"></div>
+    <button class="ghost" id="addApp">Add app</button>
+  </section>
+
+  <button class="ghost wide" id="test">Show test popup</button>
+</main>
+<div id="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>
