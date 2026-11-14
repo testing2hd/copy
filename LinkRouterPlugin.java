@@ -65,6 +65,7 @@ public class LinkRouterPlugin extends Plugin {
             o.put("installed", inst);
             o.put("engine", Downloader.version(ctx()));
             o.put("engineUpdated", Downloader.lastUpdate(ctx()));
+            o.put("history", new JSArray(Downloader.history(ctx()).toString()));
             call.resolve(o);
         } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
     }
@@ -161,8 +162,18 @@ public class LinkRouterPlugin extends Plugin {
     public void download(PluginCall call) {
         String url = Config.extractUrl(call.getString("url"));
         if (url == null) { call.reject("Not a valid link"); return; }
-        DownloadService.start(ctx(), url);
+        DownloadService.start(ctx(), url, call.getString("format"));
         call.resolve();
+    }
+
+    @PluginMethod
+    public void listFormats(final PluginCall call) {
+        final String url = Config.extractUrl(call.getString("url"));
+        if (url == null) { call.reject("Not a valid link"); return; }
+        new Thread(() -> {
+            try { call.resolve(new JSObject(Downloader.info(ctx(), url).toString())); }
+            catch (Throwable t) { call.reject(String.valueOf(t.getMessage())); }
+        }).start();
     }
 
     @PluginMethod

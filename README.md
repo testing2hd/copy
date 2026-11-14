@@ -15,3 +15,6 @@ Optional: add repo secret `DEBUG_KEYSTORE_BASE64` (base64 of a debug.keystore) s
 
 You can also use Share -> Link Router from any app, or "Show test popup" to check the popup alone.
 After a reboot, start Shizuku again, then the watcher reconnects by itself.
+
+## Settings
+Quality, codec, audio format, playlists, clips, subtitles, thumbnail/metadata, SponsorBlock, network, file names and a free-text box for any other yt-dlp argument. "Choose format" lists every format of a link. The notification has Mode / Quality / Stop buttons.

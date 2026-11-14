@@ -35,7 +35,7 @@ import org.json.JSONObject;
  */
 public class ClipWatchService extends Service {
     public static volatile boolean running = false;
-    private static final String CH = "watch2";
+    private static final String CH = "watch3";
     private static final int NID = 1;
 
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -86,11 +86,12 @@ public class ClipWatchService extends Service {
         if (running) return START_STICKY;
 
         try {
-            NotificationChannel ch = new NotificationChannel(CH, "Link watcher (silent)", NotificationManager.IMPORTANCE_MIN);
+            NotificationChannel ch = new NotificationChannel(CH, "Download options", NotificationManager.IMPORTANCE_LOW);
             ch.setShowBadge(false);
             getSystemService(NotificationManager.class).deleteNotificationChannel("watch");
+            getSystemService(NotificationManager.class).deleteNotificationChannel("watch2");
             getSystemService(NotificationManager.class).createNotificationChannel(ch);
-            Notification n = buildNotification("Starting...");
+            Notification n = buildNotification(this, "Starting...");
             if (Build.VERSION.SDK_INT >= 34) {
                 startForeground(NID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
             } else {
@@ -111,23 +112,34 @@ public class ClipWatchService extends Service {
         return START_STICKY;
     }
 
-    private Notification buildNotification(String text) {
-        Intent stop = new Intent(this, ClipWatchService.class).setAction("STOP");
-        PendingIntent pi = PendingIntent.getService(this, 0, stop,
-                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-        return new Notification.Builder(this, CH)
+    /** Persistent notification that doubles as a quick settings panel: mode, quality/format, stop. */
+    static Notification buildNotification(Context c, String text) {
+        JSONObject d = Config.dl(c);
+        boolean audio = "audio".equals(d.optString("mode", "video"));
+        String q = d.optString("quality", "best");
+        String afmt = d.optString("audioFormat", "m4a").toUpperCase();
+        String summary = audio ? "Audio " + afmt : "Video " + ("best".equals(q) ? "Best" : q + "p") + " " + d.optString("container", "mp4").toUpperCase();
+        int fl = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
+        PendingIntent mode = PendingIntent.getBroadcast(c, 1, new Intent(c, QuickReceiver.class).setAction("MODE"), fl);
+        PendingIntent opt = PendingIntent.getBroadcast(c, 2, new Intent(c, QuickReceiver.class).setAction("OPT"), fl);
+        PendingIntent stop = PendingIntent.getService(c, 0, new Intent(c, ClipWatchService.class).setAction("STOP"), fl);
+        Intent open = c.getPackageManager().getLaunchIntentForPackage(c.getPackageName());
+        Notification.Builder b = new Notification.Builder(c, CH)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setContentTitle("Link Router")
-                .setContentText("Watching for links")
+                .setContentTitle("Download as: " + summary)
+                .setContentText(text.startsWith("Watching") ? "Pick options below, then copy a link" : text)
                 .setShowWhen(false)
                 .setOngoing(true)
-                .addAction(new Notification.Action.Builder(null, "Stop", pi).build())
-                .build();
+                .addAction(new Notification.Action.Builder(null, audio ? "Mode: Audio" : "Mode: Video", mode).build())
+                .addAction(new Notification.Action.Builder(null, audio ? "Format: " + afmt : "Quality: " + ("best".equals(q) ? "Best" : q + "p"), opt).build())
+                .addAction(new Notification.Action.Builder(null, "Stop", stop).build());
+        if (open != null) b.setContentIntent(PendingIntent.getActivity(c, 3, open, PendingIntent.FLAG_IMMUTABLE));
+        return b.build();
     }
 
     private void status(String text) {
         Config.setStatus(this, text);
-        try { getSystemService(NotificationManager.class).notify(NID, buildNotification(text)); }
+        try { getSystemService(NotificationManager.class).notify(NID, buildNotification(this, text)); }
         catch (Throwable ignored) { }
     }
 

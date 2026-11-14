@@ -22,8 +22,10 @@ public class DownloadService extends Service {
     private final ExecutorService ex = Executors.newSingleThreadExecutor();
     private int pending = 0;
 
-    public static void start(Context c, String url) {
-        c.startForegroundService(new Intent(c, DownloadService.class).putExtra("url", url));
+    public static void start(Context c, String url) { start(c, url, null); }
+
+    public static void start(Context c, String url, String fmt) {
+        c.startForegroundService(new Intent(c, DownloadService.class).putExtra("url", url).putExtra("fmt", fmt));
     }
 
     @Override public IBinder onBind(Intent i) { return null; }
@@ -32,6 +34,7 @@ public class DownloadService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && "CANCEL".equals(intent.getAction())) { Downloader.cancel(); return START_NOT_STICKY; }
         final String url = intent == null ? null : intent.getStringExtra("url");
+        final String fmt = intent == null ? null : intent.getStringExtra("fmt");
         if (url == null) { stopSelf(); return START_NOT_STICKY; }
         getSystemService(NotificationManager.class)
                 .createNotificationChannel(new NotificationChannel(CH, "Downloads", NotificationManager.IMPORTANCE_LOW));
@@ -39,7 +42,7 @@ public class DownloadService extends Service {
         if (Build.VERSION.SDK_INT >= 29) startForeground(NID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
         else startForeground(NID, n);
         pending++;
-        ex.submit(() -> work(url));
+        ex.submit(() -> work(url, fmt));
         return START_NOT_STICKY;
     }
 
@@ -57,26 +60,29 @@ public class DownloadService extends Service {
         return b.build();
     }
 
-    private void work(String url) {
+    private void work(String url, String fmt) {
         NotificationManager nm = getSystemService(NotificationManager.class);
         try {
-            Uri out = Downloader.download(this, url, (pct, line) -> {
+            Downloader.Result res = Downloader.download(this, url, fmt, (pct, line) -> {
                 String t = pct >= 0 ? pct + "%" : (line == null ? "Working..." : line);
                 nm.notify(NID, progress(t, pct));
             });
+            Uri out = res.uri;
+            Downloader.addHistory(this, url, res.name, "done");
             Intent view = new Intent(Intent.ACTION_VIEW).setDataAndType(out, getContentResolver().getType(out))
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
             PendingIntent pi = PendingIntent.getActivity(this, resultId, view, PendingIntent.FLAG_IMMUTABLE);
             nm.notify(resultId++, new Notification.Builder(this, CH)
                     .setSmallIcon(android.R.drawable.stat_sys_download_done)
                     .setContentTitle("Download complete")
-                    .setContentText("Saved to Movies/LinkRouter. Tap to open.")
+                    .setContentText((res.count > 1 ? res.count + " files saved. " : "") + res.name)
                     .setContentIntent(pi).setAutoCancel(true).build());
         } catch (Throwable t) {
             String m = String.valueOf(t.getMessage()).trim();
             int cut = m.lastIndexOf("ERROR:");
             if (cut >= 0) m = m.substring(cut);
             if (m.length() > 200) m = m.substring(0, 200);
+            Downloader.addHistory(this, url, Downloader.cancelled ? "Cancelled" : m, Downloader.cancelled ? "cancelled" : "failed");
             nm.notify(resultId++, new Notification.Builder(this, CH)
                     .setSmallIcon(android.R.drawable.stat_notify_error)
                     .setContentTitle(Downloader.cancelled ? "Download cancelled" : "Download failed")

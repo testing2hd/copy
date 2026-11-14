@@ -30,18 +30,17 @@ public class Config {
         }
     }
 
-    /** Download settings: quality best|1080|720|480|audio, container mp4|mkv|webm, channel nightly|stable. */
+    /** Every download option lives here; the app UI edits these keys (see www/app.js SCHEMA). */
     public static JSONObject dlDefaults() {
-        try {
-            JSONObject d = new JSONObject();
-            d.put("quality", "best");
-            d.put("container", "mp4");
-            d.put("channel", "nightly");
-            d.put("cookies", "");
-            return d;
-        } catch (Exception e) {
-            return new JSONObject();
-        }
+        String[][] kv = {
+            {"mode", "video"}, {"quality", "best"}, {"container", "mp4"}, {"vcodec", "h264"},
+            {"audioFormat", "m4a"}, {"audioQuality", "0"}, {"subs", "none"}, {"subLangs", "en.*"},
+            {"sponsorblock", "off"}, {"threads", "4"}, {"retries", "10"}, {"folder", "LinkRouter"},
+            {"channel", "nightly"}, {"cookies", ""}, {"extra", ""}
+        };
+        JSONObject d = new JSONObject();
+        try { for (String[] p : kv) d.put(p[0], p[1]); } catch (Exception ignored) { }
+        return d;
     }
 
     private static JSONObject withDl(JSONObject o) {
